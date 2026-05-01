@@ -2,9 +2,9 @@ name: GTest CI
 
 on:
   push:
-    branches: [ "SubmissionBranch" ] # Triggers on push to the main branch
+    branches: [ "master" ] # Triggers on push to the main branch
   pull_request:
-    branches: [ "SubmissionBranch" ]
+    branches: [ "master" ]
 
 jobs:
   build-and-test:
@@ -21,12 +21,12 @@ jobs:
 
     - name: Configure CMake
       # Assuming your project uses CMake to find GTest
-      run: cmake -S ./src -B build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S ./LA-TEST-ENV -B build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
       run: cmake --build build
 
     - name: Run Tests
       # Replace 'my_test_executable' with your actual test binary name
-      working-directory: src
+      working-directory: LA-TEST-ENV
       run: ctest --output-on-failure
