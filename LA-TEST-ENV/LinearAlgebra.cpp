@@ -75,7 +75,7 @@ Quat normalizeQuat(const Quat& q)
 Quat quatMultiply(const Quat& a, const Quat& b)
 {
     return {
-		1+a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,  // Scalar part
+		a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,  // Scalar part
         a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,  // i component
         a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,  // j component
         a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w   // k component
