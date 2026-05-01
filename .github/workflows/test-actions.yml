@@ -28,5 +28,5 @@ jobs:
 
     - name: Run Tests
       # Replace 'my_test_executable' with your actual test binary name
-      working-directory: src
+      working-directory: LA-TEST-ENV
       run: ctest --output-on-failure
