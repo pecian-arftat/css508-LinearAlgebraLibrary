@@ -23,12 +23,12 @@ jobs:
 
     - name: Configure CMake
       # Assuming your project uses CMake to find GTest
-      run: cmake -S ./LA-TEST-ENV -B build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S LA-TEST-ENV -B build
 
     - name: Build
       run: cmake --build build
 
     - name: Run Tests
       # Replace 'my_test_executable' with your actual test binary name
-      working-directory: LA-TEST-ENV
-      run: ctest --output-on-failure
+      # working-directory: LA-TEST-ENV
+      run: ctest --test-dir build --output-on-failure
