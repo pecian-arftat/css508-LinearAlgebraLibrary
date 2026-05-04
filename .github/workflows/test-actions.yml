@@ -1,5 +1,3 @@
-# This GitHub Actions workflow is designed to automate the build and testing process for a C++ project that uses Google Test (GTest). 
-# It triggers on pushes and pull requests to the master branch, ensuring that your tests are run whenever changes are made.
 name: GTest CI
 
 on:

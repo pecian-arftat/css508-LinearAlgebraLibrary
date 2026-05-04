@@ -22,11 +22,6 @@ struct Vec3
 		return { x * scalar, y * scalar, z * scalar };
 	}
 
-	friend Vec3 operator*(double scalar, const Vec3& v)
-	{
-		return { v.x * scalar, v.y * scalar, v.z * scalar };
-	}
-
 	Vec3 operator/(double scalar) const 
 	{
 		return { x / scalar, y / scalar, z / scalar };
@@ -71,12 +66,6 @@ bool almostEqualVec3(const Vec3& a, const Vec3& b, double eps = EPS);
 double dot4(const Vec4& a, const Vec4& b);
 
 Vec3 cross3(const Vec3& a, const Vec3& b);
-
-// Added Euler rotation functions for testing purposes (not part of the main implementation)
-Vec3 rotateEulerX(const Vec3& v, double angleDegrees);
-
-// Added Euler rotation functions for testing purposes (not part of the main implementation)
-Vec3 rotateEulerY(const Vec3& v, double angleDegrees);
 
 Vec3 rotateEulerZ(const Vec3& v, double angleDegrees);
 
