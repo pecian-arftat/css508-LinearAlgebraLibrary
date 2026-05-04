@@ -27,8 +27,31 @@ Vec3 cross3(const Vec3& a, const Vec3& b)
         a.z * b.x - a.x * b.z,
         a.x * b.y - a.y * b.x
     };
+}// Counter-clockwise rotation around axes (right-hand rule)
+Vec3 rotateEulerX(const Vec3& v, double angleDegrees)
+{
+    double radians = angleDegrees * PI / 180.0;
+    double cosA = std::cos(radians);
+    double sinA = std::sin(radians);
+    return {
+        v.x,
+        v.y * cosA - v.z * sinA,
+        v.y * sinA + v.z * cosA
+    };
+}// Counter-clockwise rotation around axes (right-hand rule)
+Vec3 rotateEulerY(const Vec3& v, double angleDegrees)
+{
+    double radians = angleDegrees * PI / 180.0;
+    double cosA = std::cos(radians);
+    double sinA = std::sin(radians);
+    return {
+        v.x * cosA + v.z * sinA,
+        v.y,
+        -v.x * sinA + v.z * cosA
+    };
 }
 
+// Counter-clockwise rotation around axes (right-hand rule)
 Vec3 rotateEulerZ(const Vec3& v, double angleDegrees)
 {
     double radians = angleDegrees * PI / 180.0;
@@ -53,12 +76,16 @@ Quat quatFromAxisAngle(const Vec3& axis, double angleDegrees)
     double halfAngle = radians / 2.0;
     double sinHalf = std::sin(halfAngle);
 
-    return {
+    Quat q = {
         std::cos(halfAngle),
         axis.x * sinHalf,
         axis.y * sinHalf,
         axis.z * sinHalf
-    };
+	};
+
+	Quat normalized = normalizeQuat(q);
+
+	return normalized;
 }
 
 Quat normalizeQuat(const Quat& q)
@@ -75,7 +102,7 @@ Quat normalizeQuat(const Quat& q)
 Quat quatMultiply(const Quat& a, const Quat& b)
 {
     return {
-		1+a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,  // Scalar part
+		a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,  // Scalar part
         a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,  // i component
         a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,  // j component
         a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w   // k component
