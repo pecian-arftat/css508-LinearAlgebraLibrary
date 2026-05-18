@@ -1,32 +1,35 @@
-// Unit tests for LinearAlgebra.h using Google Test framework
-
 #include "pch.h"
 
 #include <iostream>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <tuple>
 
-#include "LinearAlgebra.h"
 
+#include "VectorTransformation3D.h"
+
+// ----------------------------
+// Unit Tests
+// ----------------------------
 // ----------------------------
 // Dot Product Tests
 // ----------------------------
 TEST(DotProductTest, Basic) {
-    Vec4 a{ 1,2,3,4 };
-    EXPECT_DOUBLE_EQ(dot4(a, a), 30);
+    Vec3 a{ 1,2,3 };
+    EXPECT_DOUBLE_EQ(dot3(a, a), 14);
 }
 
 TEST(DotProductTest, Orthogonal) {
-    Vec4 a{ 1,0,0,0 };
-    Vec4 b{ 0,1,0,0 };
-    EXPECT_DOUBLE_EQ(dot4(a, b), 0);
+    Vec3 a{ 1,0,0 };
+    Vec3 b{ 0,1,0 };
+    EXPECT_DOUBLE_EQ(dot3(a, b), 0);
 }
 
 TEST(DotProductTest, Commutative) {
-    Vec4 a{ 1,2,3,4 };
-    Vec4 b{ 4,3,2,1 };
-    EXPECT_DOUBLE_EQ(dot4(a, b), dot4(b, a));
+    Vec3 a{ 1,2,3 };
+    Vec3 b{ 4,3,2 };
+    EXPECT_DOUBLE_EQ(dot3(a, b), dot3(b, a));
 }
 
 // ----------------------------
@@ -310,6 +313,487 @@ TEST(IntegrationTest, OrthogonalVectorsRemainOrthogonal) {
 
     EXPECT_NEAR(dotResult, 0.0, EPS);
 }
+
+// ============================================================
+// E2E TEST SCENARIO
+// 3D Unit Cube Transformation Pipeline
+//
+// Scenario:
+// A graphics programmer has the vertex coordinates of a
+// 3D unit cube (side length = 2).
+//
+// The cube must:
+//   1. Rotate 45 degrees around X axis
+//   2. Rotate 45 degrees around Y axis
+//
+// This E2E test validates:
+//   - Sequential quaternion rotations
+//   - Transformation pipeline correctness
+//   - Magnitude preservation
+//   - Orthogonality preservation
+//   - No NaN/Inf corruption
+//   - Correct cube structure retention
+// ============================================================
+
+std::vector<Vec3> createUnitCubeVertices() {
+	return {
+		{ -1, -1, -1 }, // 0
+		{  1, -1, -1 }, // 1
+		{  1,  1, -1 }, // 2
+		{ -1,  1, -1 }, // 3
+		{ -1, -1,  1 }, // 4
+		{  1, -1,  1 }, // 5
+		{  1,  1,  1 }, // 6
+		{ -1,  1,  1 }  // 7
+	};
+}
+
+double distance(const Vec3& a, const Vec3& b) {
+	return std::sqrt(
+		(a.x - b.x) * (a.x - b.x) +
+		(a.y - b.y) * (a.y - b.y) +
+		(a.z - b.z) * (a.z - b.z)
+	);
+}
+
+// ============================================================
+// E2E TEST
+// ============================================================
+
+TEST(E2ETest, CubeRotationPipeline_X45_Y45) {
+
+    // --------------------------------------------------------
+    // Step 1:
+    // Create Cube Vertices
+    // --------------------------------------------------------
+
+    std::vector<Vec3> cube =
+        createUnitCubeVertices();
+
+    ASSERT_EQ(cube.size(), 8);
+
+    // --------------------------------------------------------
+    // Step 2:
+    // Create Rotations
+    // --------------------------------------------------------
+
+    Quat rotateX =
+        quatFromAxisAngle(
+            { 1,0,0 },
+            45.0
+        );
+
+    Quat rotateY =
+        quatFromAxisAngle(
+            { 0,1,0 },
+            45.0
+        );
+
+    // --------------------------------------------------------
+    // Step 3:
+    // Apply Sequential Rotations
+    // --------------------------------------------------------
+
+    std::vector<Vec3> transformed;
+
+    for (const auto& vertex : cube) {
+
+        // Rotate around X
+        Vec3 xRotated =
+            quatRotate(
+                rotateX,
+                vertex
+            );
+
+        // Rotate around Y
+        Vec3 finalRotated =
+            quatRotate(
+                rotateY,
+                xRotated
+            );
+
+        transformed.push_back(finalRotated);
+    }
+
+    ASSERT_EQ(transformed.size(), 8);
+
+    // --------------------------------------------------------
+    // Step 4:
+    // Validate No NaN / Inf
+    // --------------------------------------------------------
+
+    for (const auto& v : transformed) {
+
+        EXPECT_FALSE(std::isnan(v.x));
+        EXPECT_FALSE(std::isnan(v.y));
+        EXPECT_FALSE(std::isnan(v.z));
+
+        EXPECT_FALSE(std::isinf(v.x));
+        EXPECT_FALSE(std::isinf(v.y));
+        EXPECT_FALSE(std::isinf(v.z));
+    }
+
+    // --------------------------------------------------------
+    // Step 5:
+    // Validate Magnitude Preservation
+    //
+    // Rotation should not change
+    // distance from origin
+    // --------------------------------------------------------
+
+    for (size_t i = 0; i < cube.size(); i++) {
+
+        double originalMag =
+            magnitude(cube[i]);
+
+        double rotatedMag =
+            magnitude(transformed[i]);
+
+        EXPECT_NEAR(
+            originalMag,
+            rotatedMag,
+            EPS
+        );
+    }
+
+    // --------------------------------------------------------
+    // Step 6:
+    // Validate Edge Length Preservation
+    //
+    // Cube edges should remain length 2
+    // --------------------------------------------------------
+
+    // Example edge:
+    // Vertex 0 -> Vertex 1
+
+    double originalEdge =
+        distance(cube[0], cube[1]);
+
+    double transformedEdge =
+        distance(
+            transformed[0],
+            transformed[1]
+        );
+
+    EXPECT_NEAR(
+        originalEdge,
+        transformedEdge,
+        EPS
+    );
+
+    EXPECT_NEAR(
+        transformedEdge,
+        2.0,
+        EPS
+    );
+
+    // --------------------------------------------------------
+    // Step 7:
+    // Validate Orthogonality Preservation
+    //
+    // Adjacent cube edges should remain orthogonal
+    // --------------------------------------------------------
+
+    Vec3 edgeA{
+        transformed[1].x - transformed[0].x,
+        transformed[1].y - transformed[0].y,
+        transformed[1].z - transformed[0].z
+    };
+
+    Vec3 edgeB{
+        transformed[3].x - transformed[0].x,
+        transformed[3].y - transformed[0].y,
+        transformed[3].z - transformed[0].z
+    };
+
+    double dot =
+        edgeA.x * edgeB.x +
+        edgeA.y * edgeB.y +
+        edgeA.z * edgeB.z;
+
+    EXPECT_NEAR(dot, 0.0, EPS);
+
+    // --------------------------------------------------------
+    // Step 8:
+    // Validate Deterministic Output
+    // --------------------------------------------------------
+
+    std::vector<Vec3> rerun;
+
+    for (const auto& vertex : cube) {
+
+        Vec3 xRotated =
+            quatRotate(
+                rotateX,
+                vertex
+            );
+
+        Vec3 finalRotated =
+            quatRotate(
+                rotateY,
+                xRotated
+            );
+
+        rerun.push_back(finalRotated);
+    }
+
+    for (size_t i = 0; i < transformed.size(); i++) {
+
+        EXPECT_TRUE(
+            almostEqualVec3(
+                transformed[i],
+                rerun[i]
+            )
+        );
+    }
+}
+
+// ============================================================
+// E2E TEST SCENARIO
+// Shape Verification Using dot4 and cross3
+//
+// Scenario:
+// A graphics programmer receives a set of vertices
+// representing an unknown 3D shape.
+//
+// The programmer wants to verify whether the shape
+// is a valid box (rectangular prism / cube).
+//
+// Validation Strategy:
+//   1. Use cross3 to verify adjacent edges are
+//      perpendicular (orthogonal faces)
+//   2. Use dot4 to verify orthogonality
+//   3. Verify opposite edges are parallel
+//   4. Verify edge lengths are consistent
+//
+// This test validates the FULL geometry pipeline.
+// ============================================================
+
+// ============================================================
+// Utility Functions
+// ============================================================
+
+Vec3 subtract(
+    const Vec3& a,
+    const Vec3& b
+) {
+    return {
+        a.x - b.x,
+        a.y - b.y,
+        a.z - b.z
+    };
+}
+
+// ============================================================
+// Shape Definition
+//
+// Cube / Box with side length = 2
+// Centered at origin
+// ============================================================
+
+std::vector<Vec3> createShapeVertices() {
+
+    return {
+        {-1,-1,-1}, // 0
+        { 1,-1,-1}, // 1
+        { 1, 1,-1}, // 2
+        {-1, 1,-1}, // 3
+
+        {-1,-1, 1}, // 4
+        { 1,-1, 1}, // 5
+        { 1, 1, 1}, // 6
+        {-1, 1, 1}  // 7
+    };
+}
+
+// ============================================================
+// E2E TEST
+// ============================================================
+
+TEST(E2ETest, VerifyShapeIsBoxUsingDotAndCross) {
+
+    // --------------------------------------------------------
+    // Step 1:
+    // Load Unknown Shape
+    // --------------------------------------------------------
+
+    std::vector<Vec3> shape =
+        createShapeVertices();
+
+    ASSERT_EQ(shape.size(), 8);
+
+    // --------------------------------------------------------
+    // Step 2:
+    // Construct Adjacent Edges
+    //
+    // Use vertex 0 as reference
+    // --------------------------------------------------------
+
+    Vec3 edgeX =
+        subtract(shape[1], shape[0]);
+
+    Vec3 edgeY =
+        subtract(shape[3], shape[0]);
+
+    Vec3 edgeZ =
+        subtract(shape[4], shape[0]);
+
+    // --------------------------------------------------------
+    // Step 3:
+    // Verify Orthogonality Using dot3
+    //
+    // Adjacent edges of a box must be perpendicular
+    // --------------------------------------------------------
+
+    Vec3 edgeX3{
+        edgeX.x,
+        edgeX.y,
+        edgeX.z
+    };
+
+    Vec3 edgeY3{
+        edgeY.x,
+        edgeY.y,
+        edgeY.z
+    };
+
+    Vec3 edgeZ3{
+        edgeZ.x,
+        edgeZ.y,
+        edgeZ.z
+    };
+
+    double dotXY =
+        dot3(edgeX3, edgeY3);
+
+    double dotXZ =
+        dot3(edgeX3, edgeZ3);
+
+    double dotYZ =
+        dot3(edgeY3, edgeZ3);
+
+    EXPECT_NEAR(dotXY, 0.0, EPS);
+    EXPECT_NEAR(dotXZ, 0.0, EPS);
+    EXPECT_NEAR(dotYZ, 0.0, EPS);
+
+    // --------------------------------------------------------
+    // Step 4:
+    // Verify Cross Products
+    //
+    // cross(X,Y) should align with Z
+    // --------------------------------------------------------
+
+    Vec3 crossXY =
+        cross3(edgeX, edgeY);
+
+    // Normalize comparison direction
+    double crossMag =
+        magnitude(crossXY);
+
+    ASSERT_GT(crossMag, 0.0);
+
+    Vec3 normalizedCross{
+        crossXY.x / crossMag,
+        crossXY.y / crossMag,
+        crossXY.z / crossMag
+    };
+
+    double edgeZMag =
+        magnitude(edgeZ);
+
+    Vec3 normalizedZ{
+        edgeZ.x / edgeZMag,
+        edgeZ.y / edgeZMag,
+        edgeZ.z / edgeZMag
+    };
+
+    // Cross product should point along Z axis
+    EXPECT_TRUE(
+        almostEqual(
+            normalizedCross.x,
+            normalizedZ.x
+        )
+    );
+
+    EXPECT_TRUE(
+        almostEqual(
+            normalizedCross.y,
+            normalizedZ.y
+        )
+    );
+
+    EXPECT_TRUE(
+        almostEqual(
+            normalizedCross.z,
+            normalizedZ.z
+        )
+    );
+
+    // --------------------------------------------------------
+    // Step 5:
+    // Verify Edge Length Consistency
+    // --------------------------------------------------------
+
+    double lenX =
+        magnitude(edgeX);
+
+    double lenY =
+        magnitude(edgeY);
+
+    double lenZ =
+        magnitude(edgeZ);
+
+    EXPECT_NEAR(lenX, 2.0, EPS);
+    EXPECT_NEAR(lenY, 2.0, EPS);
+    EXPECT_NEAR(lenZ, 2.0, EPS);
+
+    // --------------------------------------------------------
+    // Step 6:
+    // Verify Opposite Edges Parallel
+    // --------------------------------------------------------
+
+    Vec3 oppositeX =
+        subtract(shape[2], shape[3]);
+
+    Vec3 crossParallel =
+        cross3(edgeX, oppositeX);
+
+    EXPECT_NEAR(
+        magnitude(crossParallel),
+        0.0,
+        EPS
+    );
+
+    // --------------------------------------------------------
+    // Step 7:
+    // Verify No Invalid Values
+    // --------------------------------------------------------
+
+    for (const auto& v : shape) {
+
+        EXPECT_FALSE(std::isnan(v.x));
+        EXPECT_FALSE(std::isnan(v.y));
+        EXPECT_FALSE(std::isnan(v.z));
+
+        EXPECT_FALSE(std::isinf(v.x));
+        EXPECT_FALSE(std::isinf(v.y));
+        EXPECT_FALSE(std::isinf(v.z));
+    }
+
+    // --------------------------------------------------------
+    // Step 8:
+    // Final Validation
+    //
+    // If all geometric properties hold:
+    // Shape is verified as a valid box
+    // --------------------------------------------------------
+
+    SUCCEED();
+}
+
+// ============================================================
+// MAIN
+// ============================================================
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
