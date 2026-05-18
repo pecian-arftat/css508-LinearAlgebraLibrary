@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "VectorTransformation3D.h"
+#include "LinearAlgebra.h"
 
 bool almostEqual(double a, double b, double eps)
 {
@@ -15,9 +15,9 @@ bool almostEqualVec3(const Vec3& a, const Vec3& b, double eps)
 }
 
 
-double dot3(const Vec3& a, const Vec3& b)
+double dot4(const Vec4& a, const Vec4& b)
 {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
 Vec3 cross3(const Vec3& a, const Vec3& b)
@@ -28,7 +28,6 @@ Vec3 cross3(const Vec3& a, const Vec3& b)
         a.x * b.y - a.y * b.x
     };
 }// Counter-clockwise rotation around axes (right-hand rule)
-
 Vec3 rotateEulerX(const Vec3& v, double angleDegrees)
 {
     double radians = angleDegrees * PI / 180.0;
