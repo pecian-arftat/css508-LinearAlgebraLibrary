@@ -8,13 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 
 # Add library
-add_library(LinearAlgebra
-    LinearAlgebra.cpp
-    LinearAlgebra.h
+add_library(VectorTransformation3D
+    VectorTransformation3D.cpp
+    VectorTransformation3D.h
 )
 
 # Precompiled headers (optional)
-target_precompile_headers(LinearAlgebra PRIVATE pch.h)
+target_precompile_headers(VectorTransformation3D PRIVATE pch.h)
 
 # Fetch GoogleTest
 include(FetchContent)
@@ -25,15 +25,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # Test executable
-add_executable(LinearAlgebraTests
+add_executable(VectorTransformation3DTests
     test.cpp
 )
 
-target_link_libraries(LinearAlgebraTests
-    LinearAlgebra
+target_link_libraries(VectorTransformation3DTests
+    VectorTransformation3D
     GTest::gtest_main
 )
 
 # Register tests
 include(GoogleTest)
-gtest_discover_tests(LinearAlgebraTests)
+gtest_discover_tests(VectorTransformation3DTests)
